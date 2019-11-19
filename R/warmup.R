@@ -4,7 +4,7 @@
 warmup = function(file,
                   stan_fit,
                   window_size = 100,
-                  max_num_windows = 5,
+                  max_num_windows = 10,
                   num_chains = 4,
                   combine_chain_draws = TRUE,
                   target_rhat = 1.05,
