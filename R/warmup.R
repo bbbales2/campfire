@@ -21,6 +21,7 @@ warmup = function(file,
   usamples = array(0, dim = c(window_size * max_num_windows, num_chains, num_params))
   stepsizes = NULL
   inv_metric = NULL
+  window_end = NULL
   for(window in 1:max_num_windows) {
     window_start = (window - 1) * window_size + 1
     window_end = window * window_size
@@ -67,14 +68,15 @@ warmup = function(file,
 
   fargs = args
   fargs$num_chains = num_chains
-  fargs$num_warmup = window_size
-  fargs$metric = "dense"
+  fargs$num_warmup = 50
+  fargs$metric = "dense_e"
+  fargs$init = sapply(1:num_chains, function(chain) { getInitFile(stan_fit, usamples[window_end, chain,]) })
   fargs$inv_metric = inv_metric
   fargs$stepsize = stepsizes
-  fargs$term_buffer = window_size
+  fargs$term_buffer = 50
   fargs$init_buffer = 0
   fargs$window = 0
 
   return(list(args = fargs,
-              usamples = usamples))
+              usamples = usamples[1:window_end,,]))
 }
