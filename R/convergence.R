@@ -11,7 +11,7 @@ compute_window_convergence = function(usamples, window_size, target_rhat, target
       arrange(-Rhat)
 
     rhats = c(rhats, as.matrix(mdf[1, "Rhat"])[1])
-    ess = c(ess, as.matrix((mdf %>% arrange(n_eff))[1, "Bulk_ESS"])[1])
+    ess = c(ess, as.matrix((mdf %>% arrange(Bulk_ESS))[1, "Bulk_ESS"])[1])
   }
 
   meets_target = (rhats < target_rhat) & (ess > target_ess)
@@ -20,14 +20,15 @@ compute_window_convergence = function(usamples, window_size, target_rhat, target
   if(converged) {
     choice = which(meets_target)[1]
   } else {
-    choice = order(rhats)[1]
+    choice = order(ess, decreasing = TRUE)[1]
   }
 
   print("Adaptive warmup debug info (figure out how many initial windows to drop):")
   print(tibble(max_Rhat = rhats,
                min_Bulk_ESS = ess,
-               drop_first_n_windows = 0:(length(rhats) - 1)) %>%
-          select(drop_first_n_windows, everything()))
+               drop_first_n_windows = 0:(length(rhats) - 1),
+               picked = ifelse(1:length(rhats) == choice, "picked", "")) %>%
+          select(drop_first_n_windows, picked, everything()))
 
   return(list(rhat = rhats[choice],
               ess = ess[choice],

@@ -22,6 +22,7 @@ warmup = function(file,
   stepsizes = NULL
   inv_metric = NULL
   window_end = NULL
+  nleapfrogs = 0
   for(window in 1:max_num_windows) {
     window_start = (window - 1) * window_size + 1
     window_end = window * window_size
@@ -56,6 +57,8 @@ warmup = function(file,
       getUnconstrainedSamples(fit)
     stepsizes = getStepsizes(fit)
 
+    nleapfrogs = nleapfrogs + sum(sapply(getExtras(fit), function(df) { sum(df %>% pull(n_leapfrog__)) }))
+
     results = compute_window_convergence(usamples[1:window_end,,], window_size, target_rhat, target_ess)
 
     combined_usamples = matrix(usamples[(results$start):window_end,,] %>% aperm(c(2, 1, 3)), ncol = dim(usamples)[3])
@@ -78,5 +81,6 @@ warmup = function(file,
   fargs$window = 0
 
   return(list(args = fargs,
-              usamples = usamples[1:window_end,,]))
+              usamples = usamples[1:window_end,,],
+              nleapfrogs = nleapfrogs))
 }

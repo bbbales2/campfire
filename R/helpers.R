@@ -17,13 +17,12 @@ getUnconstrainedSamples = function(fit) {
   return(usamples)
 }
 
-#getExtras = function(fit) {
-#  lapply(fit$diagnostic_files(), function(file) {
-#    read_csv(file, comment = "#", col_types = cols(.default = col_double())) %>%
-#      select(lp__, accept_stat__, stepsize__, treedepth__, n_leapfrog__, divergent__, energy__)
-#  }) %>%
-#    bind_rows()
-#}
+getExtras = function(fit) {
+  lapply(fit$diagnostic_files(), function(file) {
+    read_csv(file, comment = "#", col_types = cols(.default = col_double())) %>%
+      select(lp__, accept_stat__, stepsize__, treedepth__, n_leapfrog__, divergent__, energy__)
+  })
+}
 
 getInitFile = function(stan_fit, ldraw) {
   init = constrain_pars(stan_fit, ldraw %>% as.matrix)

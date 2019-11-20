@@ -23,22 +23,10 @@ diag_inv_metric = function(samples) {
 dense_inv_metric = function(samples, rank_check = TRUE) {
   c = cov(samples)
 
-  rank = 0
-  if(rank_check) {
-    for(i in 1:(nrow(samples) - 1)) {
-      r2 = sum(samples[i,] - samples[i + 1,])^2
-      if(r2 > 1e-16 * ncol(samples)) {
-        rank = rank + 1
-      }
-    }
-  } else {
-    rank = min(ncol(samples), nrow(samples) - 1)
-  }
-
-  nkeep = rank
+  e = eigen(c, T)
+  nkeep = tail(which(e$values > 1e-10), 1)
 
   if(nkeep < ncol(samples)) {
-    e = eigen(c, T)
     mine = e$values[nkeep]
     c = e$vectors[, 1:nkeep] %*% diag(e$values[1:nkeep] - mine) %*% t(e$vectors[, 1:nkeep])
     c = c + mine * diag(ncol(samples))
@@ -53,6 +41,34 @@ lw_linear_corr_inv_metric = function(samples) {
   sqrt_D %*% linshrink_cov(samples %*% sqrt_Dinv) %*% sqrt_D
 }
 
+hess_inv_metric = function(stan_fit, Nev, samples) {
+  Dsqrt = diag(sqrt(diag(cov(samples))))
+  H = Dsqrt %*% getHessian(stan_fit, tail(samples, 1)) %*% Dsqrt
+  eh = eigen(H, T)
+  sorted = order(eh$values)
+  evals = 1.0 / abs(eh$values[sorted])
+  evecs = eh$vectors[, sorted]
+
+  etail = evals[Nev + 1]
+
+  Happrox = evecs[, 1:Nev] %*%
+    (diag(evals[1:Nev], nrow = Nev) - etail * diag(1.0, nrow = Nev)) %*%
+    t(evecs[, 1:Nev]) +
+    etail * diag(ncol(samples))
+
+  return(Dsqrt %*% Happrox %*% Dsqrt)
+}
+
+hess_wishart_inv_metric = function(stan_fit, Nev, samples) {
+  h = hess_inv_metric(stan_fit, Nev, samples)
+  c = cov(samples)
+
+  P = ncol(samples)
+  N = nrow(samples)
+
+  return((P * h + N * c) / (P + N - 1))
+}
+
 compute_inv_metric = function(stan_fit, usamples) {
   Ntest = max(nrow(usamples) / 2, 50)
   Ntrain = nrow(usamples) - Ntest
@@ -65,13 +81,23 @@ compute_inv_metric = function(stan_fit, usamples) {
                             dense = dense_inv_metric,
                             lw2004 = lw_linear_corr_inv_metric)
 
+  if(ncol(usamples) > 1) {
+    inv_metric_options[["hess1"]] = function(samples) hess_inv_metric(stan_fit, 1, samples)
+    inv_metric_options[["hess1_wish"]] = function(samples) hess_wishart_inv_metric(stan_fit, 1, samples)
+  }
+
+  if(ncol(usamples) > 2) {
+    inv_metric_options[["hess2"]] = function(samples) hess_inv_metric(stan_fit, 2, samples)
+    inv_metric_options[["hess2_wish"]] = function(samples) hess_wishart_inv_metric(stan_fit, 2, samples)
+  }
+
   perfdf = lapply(names(inv_metric_options), function(inv_metric_name) {
     inv_metric = inv_metric_options[[inv_metric_name]](Ytrain)
 
     cov_test = cov(Ytest)
     L = t(chol(inv_metric))
     el = eigen(solve(L, t(solve(L, t(cov_test)))), T)
-    H = t(L) %*% getHessian(stan_fit, tail(usamples, 1)) %*% L
+    H = t(L) %*% getHessian(stan_fit, tail(Ytest, 1)) %*% L
     eh = eigen(H, T)
 
     tibble(name = inv_metric_name,
