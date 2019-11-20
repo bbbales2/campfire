@@ -106,7 +106,7 @@ compute_inv_metric = function(stan_fit, usamples) {
     bind_rows %>%
     arrange(-c_hybrid)
 
-  print("Metric calculation info (lower c better, minimum is 1.0):")
+  print("Metric calculation info (lower c better, last is always picked, minimum is 1.0):")
   print(perfdf)
 
   name = perfdf %>% tail(1) %>% pull(name)
