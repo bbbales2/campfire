@@ -18,7 +18,8 @@ compute_window_convergence = function(usamples, window_size, target_rhat, target
 
   converged = any(meets_target)
   if(converged) {
-    choice = which(meets_target)[1]
+    options = which(meets_target)
+    choice = options[order(ess[options], decreasing = TRUE)[1]]
   } else {
     choice = order(ess, decreasing = TRUE)[1]
   }
