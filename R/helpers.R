@@ -1,5 +1,5 @@
 getUnconstrainedSamples = function(fit) {
-  usamples_list = lapply(fit$diagnostic_files(), function(file) {
+  usamples_list = lapply(fit$latent_dynamics_files(), function(file) {
     read_csv(file, comment = "#", col_types = cols(.default = col_double())) %>%
       select(-lp__, -accept_stat__, -stepsize__, -treedepth__, -n_leapfrog__, -divergent__, -energy__,
              -starts_with("p_"), -starts_with("g_")) %>%
@@ -18,7 +18,7 @@ getUnconstrainedSamples = function(fit) {
 }
 
 getExtras = function(fit) {
-  lapply(fit$diagnostic_files(), function(file) {
+  lapply(fit$latent_dynamics_files(), function(file) {
     read_csv(file, comment = "#", col_types = cols(.default = col_double())) %>%
       select(lp__, accept_stat__, stepsize__, treedepth__, n_leapfrog__, divergent__, energy__)
   })
@@ -33,7 +33,7 @@ getInitFile = function(stan_fit, ldraw) {
 }
 
 getStepsizes = function(fit) {
-  sapply(fit$diagnostic_files(), function(file) {
+  sapply(fit$latent_dynamics_files(), function(file) {
     read_csv(file, comment = "#", col_types = cols(.default = col_double())) %>%
       tail(1) %>%
       pull(stepsize__)

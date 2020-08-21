@@ -5,7 +5,7 @@ warmup = function(file,
                   stan_fit,
                   window_size = 100,
                   max_num_windows = 10,
-                  num_chains = 4,
+                  chains = 4,
                   target_rhat = 1.05,
                   target_ess = 50,
                   print_stdout = FALSE,
@@ -17,7 +17,7 @@ warmup = function(file,
   num_params = get_num_upars(stan_fit)
 
   fit = NULL
-  usamples = array(0, dim = c(window_size * max_num_windows, num_chains, num_params))
+  usamples = array(0, dim = c(window_size * max_num_windows, chains, num_params))
   stepsizes = NULL
   inv_metric = NULL
   window_end = NULL
@@ -27,20 +27,20 @@ warmup = function(file,
     window_end = window * window_size
 
     fargs = args
-    fargs$num_chains = num_chains
+    fargs$chains = chains
     fargs$save_warmup = 1
-    fargs$num_warmup = window_size
-    fargs$num_sample = 0
+    fargs$iter_warmup = window_size
+    fargs$iter_sampling = 0
     fargs$metric = "dense_e"
-    fargs$save_diagnostics = TRUE
+    fargs$save_latent_dynamics = TRUE
     fargs$term_buffer = 0
     if(window == 1) {
       fargs$init_buffer = window_size
       fargs$window = 0
     } else {
       fargs$inv_metric = inv_metric
-      fargs$init = sapply(1:num_chains, function(chain) { getInitFile(stan_fit, usamples[window_start - 1, chain,]) })
-      fargs$stepsize = mean(stepsizes)
+      fargs$init = sapply(1:chains, function(chain) { getInitFile(stan_fit, usamples[window_start - 1, chain,]) })
+      fargs$step_size = mean(stepsizes)
       fargs$init_buffer = 0
       fargs$window = window_size + 1
     }
@@ -54,7 +54,7 @@ warmup = function(file,
 
     usamples[window_start:window_end,,] =
       getUnconstrainedSamples(fit)
-    stepsizes = getStepsizes(fit)
+    stepsizes = fit$metadata()$step_size_adaptation
 
     nleapfrogs = nleapfrogs + sum(sapply(getExtras(fit), function(df) { sum(df %>% pull(n_leapfrog__)) }))
 
@@ -69,12 +69,12 @@ warmup = function(file,
   }
 
   fargs = args
-  fargs$num_chains = num_chains
-  fargs$num_warmup = 50
+  fargs$chains = chains
+  fargs$iter_warmup = 50
   fargs$metric = "dense_e"
-  fargs$init = sapply(1:num_chains, function(chain) { getInitFile(stan_fit, usamples[window_end, chain,]) })
+  fargs$init = sapply(1:chains, function(chain) { getInitFile(stan_fit, usamples[window_end, chain,]) })
   fargs$inv_metric = inv_metric
-  fargs$stepsize = mean(stepsizes)
+  fargs$step_size = mean(stepsizes)
   fargs$term_buffer = 50
   fargs$init_buffer = 0
   fargs$window = 0
