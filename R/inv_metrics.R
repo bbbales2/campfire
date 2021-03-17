@@ -77,19 +77,19 @@ compute_inv_metric = function(stan_fit, usamples) {
   top_evec = eigen(cov(Ytrain), T)$vectors[, 1]
   Ytest = tail(usamples, Ntest)
 
-  inv_metric_options = list(diag = diag_inv_metric,
-                            dense = dense_inv_metric,
-                            lw2004 = lw_linear_corr_inv_metric)
+  inv_metric_options = list(diag = diag_inv_metric)#,
+#                            dense = dense_inv_metric,
+#                            lw2004 = lw_linear_corr_inv_metric)
 
-  if(ncol(usamples) > 1) {
-    inv_metric_options[["hess1"]] = function(samples) hess_inv_metric(stan_fit, 1, samples)
-    inv_metric_options[["hess1_wish"]] = function(samples) hess_wishart_inv_metric(stan_fit, 1, samples)
-  }
+#  if(ncol(usamples) > 1) {
+#    inv_metric_options[["hess1"]] = function(samples) hess_inv_metric(stan_fit, 1, samples)
+#    inv_metric_options[["hess1_wish"]] = function(samples) hess_wishart_inv_metric(stan_fit, 1, samples)
+#  }
 
-  if(ncol(usamples) > 2) {
-    inv_metric_options[["hess2"]] = function(samples) hess_inv_metric(stan_fit, 2, samples)
-    inv_metric_options[["hess2_wish"]] = function(samples) hess_wishart_inv_metric(stan_fit, 2, samples)
-  }
+#  if(ncol(usamples) > 2) {
+#    inv_metric_options[["hess2"]] = function(samples) hess_inv_metric(stan_fit, 2, samples)
+#    inv_metric_options[["hess2_wish"]] = function(samples) hess_wishart_inv_metric(stan_fit, 2, samples)
+#  }
 
   perfdf = lapply(names(inv_metric_options), function(inv_metric_name) {
     inv_metric = inv_metric_options[[inv_metric_name]](Ytrain)
